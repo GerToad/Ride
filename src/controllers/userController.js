@@ -1,16 +1,17 @@
 // Models
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const User = require("../models/user");
 const {
     serverErrorLog,
     successLog,
     customLog,
     missingParamsLog
-} = require("../util/msgLogs");
+} = require("../utils/msgLogs");
 const {
     createUserInMongo,
     updateUserInMongo,
-} = require("../util/usersUtil");
+} = require("../utils/usersUtil");
 
 exports.get = async (req, res) => {
     const { id: _id } = req.params;
@@ -42,7 +43,7 @@ exports.get = async (req, res) => {
 
 exports.create = async (req, res) => {
 
-    let { email, password } = req.body;
+    let { email, name, password } = req.body;
 
 
     if (!password || !email) {
@@ -54,7 +55,7 @@ exports.create = async (req, res) => {
     if (userExistsMongo) {
         return customLog(res, 409, "User with this email already exists");
     }
-    o
+    
     // Generate a salt to use in the hash
     const salt = await bcrypt.genSalt(10);
 
@@ -63,10 +64,11 @@ exports.create = async (req, res) => {
 
     userData = {"email": email, "name": name, "password": hashedPassword}
     try {
-        await createUserInMongo({ userData });
-        return successLog(res, `User with email: ${email} created successfully`);
-    } catch (error) {
-        console.log(error);
+        await createUserInMongo(userData);
+        return successLog(res, `User with email: ${email} created successfully`, {"status": "success"});
+    } catch (err) {
+        console.log(err);
+        return serverErrorLog(res, err);
     }
 };
 
@@ -77,37 +79,57 @@ exports.login = async (req, res) => {
         return missingParamsLog(res);
     }
 
-    const response = await User
-        .findOne({ email })
-        .populate("reference")
-        .lean()
-        .exec()
-        .then(async user => {
-            if (!user) {
-                return customLog(res, 400, "User with this email does not exist");
-            }
-            if (user.isBlocked) {
-                return customLog(res, 403, "You do not have access to this site");
-            } else {
-                const isMatch = await bcrypt.compare(password, user.password);
-                if (!isMatch) return customLog(res, 403, "Wrong password")
+    try {
+        const user = await User.findOne({ email }).lean().exec();
 
-                return successLog(res, "Successful login", { user });
-            }
-        })
-        .catch(err => {
-            console.log(err);
-            return serverErrorLog(res, err);
-        });
-    return response;
+        if (!user) {
+            return customLog(res, 400, "User with this email does not exist");
+        }
+
+        if (user.isBlocked) {
+            return customLog(res, 403, "You do not have access to this site");
+        }
+
+        // Generate a salt to use in the hash
+        //const salt = await bcrypt.genSalt(10);
+
+        // Hash the password with the salt
+        //const hashedPassword = await bcrypt.hash(password, 10);
+        const isMatch = bcrypt.compare(password, user.password);
+
+        //console.log("Entered password:", hashedPassword);
+        //console.log("Stored hashed password:", user.password);
+        //console.log(user.password == hashedPassword)
+        if (!isMatch) {
+            return customLog(res, 403, "Wrong password");
+        }
+
+        // Generate JWT token
+        const token = jwt.sign({ userId: user._id }, "1234", { expiresIn: '1h' });
+
+        return successLog(res, "Successful login", { user, token });
+    } catch (err) {
+        console.log(err);
+        return serverErrorLog(res, err);
+    }  
 };
 
 exports.update = async (req, res) => {
     const { id: _id } = req.params;
-    let { name } = req.body;
+    let { name, password } = req.body;
 
     const updateData = {};
     if (name) updateData.name = name;
+    
+	bcrypt.hash(password, 10, (err, hash) => {
+        if (err){
+            return serverErrorLog(res, err);
+        } 
+        else{
+            updateData.password = hash;
+            console.log(updateData)
+        }
+    });
 
     if (Object.keys(updateData).length === 0)
         return customLog(res, 400, "Empty body");
@@ -121,16 +143,10 @@ exports.update = async (req, res) => {
     let updatedUser = {};
     try {
         updatedUser = await updateUserInMongo({ ...updateData, _id });
+        return successLog(res, "Update success", {"status": "success", updatedUser})
     } catch (error) {
         console.log("error", error);
         return serverErrorLog(res, error);
-    }
-
-    try {
-        await updateUserInMongo(updatedUser);
-        return serverErrorLog(res, error);
-    } catch (error) {
-        console.log("error", error);
     }
 };
 

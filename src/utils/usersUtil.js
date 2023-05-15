@@ -10,7 +10,6 @@ const User = require("../models/user");
  * @author gertoad
  */
 exports.createUserInMongo = async (data) => {
-
     const user = new User(data);
     await user.save();
 };
@@ -26,7 +25,7 @@ exports.createUserInMongo = async (data) => {
  */
 exports.updateUserInMongo = async (data) => {
     const { _id, ...fields } = data;
-    const updatedUser = await User.findOneAndUpdate({ _id }, fields, { runValidators: true });
+    const updatedUser = await User.findOneAndUpdate({ _id }, fields);
     return updatedUser;
 };
 

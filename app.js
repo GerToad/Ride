@@ -5,9 +5,17 @@ const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 3000;
 
+const userRoutes = require("./src/routes/user");
+const itemRoutes = require("./src/routes/items");
+
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(express.json());
+
+// routes
+app.use("/user", userRoutes);
+app.use("/item", itemRoutes);
+
 // Connect to MongoDB
 mongoose.connect('mongodb://127.0.0.1:27017/ride', {
   useNewUrlParser: true,
