@@ -1,5 +1,5 @@
-const { admin } = require("../util/firebaseUtil");
-const { customLog } = require("../util/msgLogs");
+const { customLog } = require("../utils/msgLogs");
+const jwt = require('jsonwebtoken');
 
 /**
  * Middleware that verifies the token
@@ -10,52 +10,33 @@ const { customLog } = require("../util/msgLogs");
  * @param {Object} res.locals - local variables saved from authentication
  * @param {Function} next - express next middleware function
  * @returns the next function if the token is valid
- * @author  Medina192
+ * @author  gerardo
  */
-exports.isAuthenticated = async (req, res, next) => {
 
-    if (process.env.NODE_ENV === "development") {
-        return next();
-    }
+// Middleware function for authentication
+const authenticateToken = (req, res, next) => {
+  // Get the token from the request headers or query parameters
+  const token = req.headers.authorization || req.query.token;
 
-    const { authorization } = req.headers;
+  if (!token) {
+    // Token is not provided
+    return customLog(res, 401, "Missing token!");
+  }
 
-    if (!authorization)
-        return customLog(res, 401, "The header was not sent");
+  try {
+    // Verify the token
+    const decoded = jwt.verify(token, '1234');
 
-    if (!authorization.startsWith("Bearer"))
-        return customLog(res, 401, "The token is not in the bearer field");
+    // Attach the decoded token payload to the request object for further use
+    req.user = decoded;
 
-    const split = authorization.split("Bearer ");
-    if (split.length !== 2)
-        return customLog(res, 401, "The header does not have the token");
-
-    const token = split[1];
-    //console.log('token', token);
-    try {
-        const decodedToken = await admin.auth().verifyIdToken(token);
-        //console.log('decoded', decodedToken);
-        res.locals = { ...res.locals, uid: decodedToken.uid, email: decodedToken.email, rolesFromToken: decodedToken.role };
-        return next();
-    } catch (err) {
-        console.error(`${err.code} -  ${err.message}`);
-        return customLog(res, 400, "error decoding the token");
-    }
+    // Proceed to the next middleware or route handler
+    next();
+  } catch (error) {
+    // Token is invalid or expired
+    //return res.status(401).json({ message: 'Access denied. Invalid token.' });
+        return customLog(res, 404, "Access denied. Invalid token.", error);
+  }
 };
 
-/**
- * Middleware that verifies the role.
- * @param {string[]} allowedRoles - list of allowed roles
- * @returns the next function if the role in the user token is allowed
- * @author  Medina192
- */
-exports.isAuthorized = ({ allowedRoles }) => {
-    return async (req, res, next) => {
-        const { NODE_ENV } = process.env;
-        const { rolesFromToken } = res.locals;
-        if (NODE_ENV === "production" || rolesFromToken.some(r => allowedRoles.includes(r)))
-            return next();
-        else
-            return customLog(res, 403, "Unauthorized Role");
-    };
-};
+module.exports = authenticateToken;

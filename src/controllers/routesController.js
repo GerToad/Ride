@@ -1,4 +1,4 @@
-const Item = require("../models/item");
+const Route = require("../models/route");
 const {
     serverErrorLog,
     successLog,
@@ -6,19 +6,19 @@ const {
     missingParamsLog
 } = require("../utils/msgLogs");
 
-exports.addItem = async (req, res) => {
-  const { name, description, cost, status, userId } = req.body;
+exports.add = async (req, res) => {
+  const { name, description, driver, issues, userId } = req.body;
 
   try {
-    const newItem = new Item({
+    const newRoute = new Route({
       name,
       description,
-      cost,
-      status,
+      driver,
+      issues,
       userId,
     });
 
-    const savedItem = await newItem.save();
+    await newRoute.save();
     return successLog(res, "Item added", {"status": "success"});
   } catch (error) {
     console.log(error);
@@ -26,17 +26,17 @@ exports.addItem = async (req, res) => {
   }
 };
 
-exports.getItem = async (req, res) => {
-    const itemId = req.query.id; // Assuming the item ID is passed as a URL parameter
+exports.getRoute = async (req, res) => {
+    const routeId = req.query.id; // Assuming the item ID is passed as a URL parameter
 
   try {
-    const item = await Item.findById(itemId);
+    const route = await Route.findById(routeId);
     
-    if (!item) {
+    if (!route) {
         return missingParamsLog(res);
     }
 
-    return successLog(res, "Item", {"status": "success", "item": item});
+    return successLog(res, "Route", {"status": "success", "route": route});
   } catch (error) {
     console.log(error);
     return serverErrorLog(res, error);
@@ -46,9 +46,9 @@ exports.getItem = async (req, res) => {
 exports.getAll = async (req, res) => {
     const userId = req.query.id; // Assuming the user ID is passed as a URL parameter
   try {
-    const items = await Item.find({ userId });
+    const routes = await Route.find({ userId });
     
-    return successLog(res, "Items", {"status": "success", "items": items});
+    return successLog(res, "Routes", {"status": "success", "routes": routes});
   } catch (error) {
     console.log(error);
     return serverErrorLog(res, error);
@@ -57,16 +57,16 @@ exports.getAll = async (req, res) => {
 
 exports.edit = async (req, res) => {
   const updates = req.body; // Assuming the updated data is passed in the request body
-  const { _id: id, ...item } = updates;
+  const { _id: id, ...route } = updates;
 
   try {
-    const updatedItem = await Item.findByIdAndUpdate(id, item);
+    const updatedRoute = await Route.findByIdAndUpdate(id, route);
 
-    if (!updatedItem) {
-      return customLog(res, 404, "Item not found" );
+    if (!updatedRoute) {
+      return customLog(res, 404, "Route not found" );
     }
 
-    return successLog(res, "Item updated", {"status": "success", "item": item});
+    return successLog(res, "Route updated", {"status": "success", "route": route});
   } catch (error) {
     console.log(error);
     return serverErrorLog(res, error);
