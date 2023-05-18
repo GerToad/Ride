@@ -15,7 +15,15 @@ const itemSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ["new", "old", "used"],
+    enum: ["nuevo", "viejo", "usado"],
+    required: true,
+  },
+  usefulLife: {
+    type: Number,
+    required: true,
+  },
+  purchaseYear: {
+    type: Number,
     required: true,
   },
   userId: {

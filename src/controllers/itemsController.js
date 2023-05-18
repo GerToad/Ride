@@ -7,7 +7,7 @@ const {
 } = require("../utils/msgLogs");
 
 exports.addItem = async (req, res) => {
-  const { name, description, cost, status, userId } = req.body;
+  const { name, description, cost, status, userId, usefulLife, purchaseYear } = req.body;
 
   try {
     const newItem = new Item({
@@ -15,6 +15,8 @@ exports.addItem = async (req, res) => {
       description,
       cost,
       status,
+      usefulLife,
+      purchaseYear,
       userId,
     });
 
