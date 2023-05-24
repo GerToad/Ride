@@ -16,7 +16,6 @@ const itemSchema = new Schema({
   status: {
     type: String,
     enum: ["nuevo", "viejo", "usado"],
-    required: true,
   },
   usefulLife: {
     type: Number,

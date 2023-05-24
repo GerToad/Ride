@@ -74,3 +74,16 @@ exports.edit = async (req, res) => {
     return serverErrorLog(res, error);
   }
 };
+
+exports.delete = async (req, res) => {
+  const itemId = req.query.id; // Assuming the item ID is passed as a URL parameter
+
+  try {
+    await Item.deleteOne(itemId);
+
+    return successLog(res, "Item deleted", {"status": "success"});
+  } catch (error) {
+    console.log(error);
+    return serverErrorLog(res, error);
+  }
+};
